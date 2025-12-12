@@ -1,0 +1,67 @@
+<!-- Sygnal Attributes 5 | HTML --> 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sygnaltech/webflow-util@5.8.8/dist/css/webflow-html.css"> 
+<script defer src="https://cdn.jsdelivr.net/gh/sygnaltech/webflow-util@5.8.8/dist/nocode/webflow-html.js"></script>
+
+<style>
+/* Match Webflow Select Field (.Select Field) for the School Select Field in the form*/
+.choices {
+  width: 100% !important;
+  max-width: 300px !important;
+  display: flex !important;
+}
+
+.choices__inner {
+  display: flex !important;
+  align-items: center !important;
+  height: 35px !important;
+  padding: 8px 12px !important;
+  border: 1px solid #ccc !important;
+  border-radius: 5px !important;
+  background-color: #fff !important;
+  font-size: 12px !important;
+  font-family: inherit !important;
+  gap: 10px !important;
+  box-shadow: none !important;
+}
+
+/* Mimic Webflow placeholder color */
+.choices__inner .choices__placeholder {
+  opacity: 0.6 !important;
+  font-size: 12px !important;
+}
+
+/* Arrow styling to match Webflow */
+.choices[data-type*="select-one"]::after {
+  border: 6px solid transparent !important;
+  border-top-color: #333 !important;
+  right: 12px !important;
+  top: 52% !important;
+}
+
+/* Remove Choices.js blue border on focus */
+.choices__inner.is-open,
+.choices__inner.is-focused {
+  border-color: #3898ec !important; /* Webflow default blue */
+  box-shadow: none !important;
+}
+
+/* Dropdown styling */
+.choices__list--dropdown {
+  border: 1px solid #ccc !important;
+  border-radius: 5px !important;
+  margin-top: 4px !important;
+  font-size: 12px !important;
+}
+
+/* Dropdown items */
+.choices__list--dropdown .choices__item {
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+}
+
+/* Hover effect similar to Webflow */
+.choices__list--dropdown .choices__item--selectable.is-highlighted {
+  background: #f2f2f2 !important;
+  color: #000 !important;
+}
+</style>
