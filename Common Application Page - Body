@@ -1,0 +1,280 @@
+<script src="https://cdn.jsdelivr.net/gh/videsigns/webflow-tools@latest/multi-step.js"></script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
+<script>
+// Accredited Colleges Loading
+document.addEventListener("DOMContentLoaded", async function () {
+
+  const JSON_URL = "https://gist.githubusercontent.com/Aparnagopal/c822f42df8a000baa27cc5860cf3f9cf/raw/c1cc3cecc81c05639c923d8d9fc9a91a2612962d/colleges.json";
+
+  const selectEl = document.querySelector("#school");
+  const savedValueEl = document.querySelector("#saved-school"); // hidden field
+
+  // Temporary loading option
+  selectEl.innerHTML = '<option>Loading institutions…</option>';
+
+  try {
+    const response = await fetch(JSON_URL);
+    const colleges = await response.json();
+
+    // Init Choices.js
+    const choices = new Choices(selectEl, {
+      searchEnabled: true,
+      placeholderValue: "Select your college…",
+      searchPlaceholderValue: "Search…",
+      itemSelectText: "",
+      shouldSort: true
+    });
+
+    // Format list
+    const formatted = colleges.map(name => ({
+      value: name,
+      label: name
+    }));
+
+    choices.setChoices(formatted, "value", "label", true);
+
+    console.log("Loaded colleges:", colleges.length);
+
+    // -----------------------------------------------------
+    // READ RESTORED CMS VALUE FROM THE HIDDEN FIELD
+    // -----------------------------------------------------
+    const restoreInterval = setInterval(() => {
+      const savedValue =
+        savedValueEl.value ||
+        savedValueEl.getAttribute("x-value") ||
+        savedValueEl.dataset.value;
+
+      if (savedValue && colleges.includes(savedValue)) {
+        console.log("📌 Restored school (from hidden field):", savedValue);
+        choices.setChoiceByValue(savedValue);
+        clearInterval(restoreInterval);
+      }
+    }, 200);
+
+    // Stop checking after 5 seconds to avoid infinite loop
+    setTimeout(() => clearInterval(restoreInterval), 5000);
+
+  } catch (err) {
+    console.error("Error loading colleges JSON:", err);
+  }
+});
+</script>
+
+
+<script>
+// Saving Data to CMS Collection
+document.addEventListener("DOMContentLoaded", function () {
+
+  const saveBtn1 = document.getElementById("save-btn-1");
+  const saveBtn2 = document.getElementById("save-btn-2");
+  const saveBtn3 = document.getElementById("save-btn-3");
+  const saveBtn4 = document.getElementById("save-btn-4");
+  const webhookURL = "https://hook.us2.make.com/bujn3p732fb4dcal6am9r177kiteqeey";
+
+  // Attach event listeners to save buttons
+  [saveBtn1, saveBtn2, saveBtn3, saveBtn4].forEach(btn => {
+    if (btn) {
+      btn.addEventListener("click", function (e) {
+        e.preventDefault();
+
+        // Grab form inputs
+        const form = document.querySelector("#wf-form-common-pyt-application");
+        const formData = new FormData(form);
+
+        // Convert FormData to plain object
+        const data = {};
+        formData.forEach((value, key) => {
+          data[key] = value;
+        });
+
+        // Send to Make.com webhook
+        fetch(webhookURL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(data)
+        })
+        .then(res => {
+          console.log("Webhook sent", res.status);
+          console.log("Data:", data);
+          alert("Saved Common Application!");
+        })
+        .catch(err => {
+          console.error("Error sending webhook:", err);
+        });
+      });
+    }
+  });
+});
+</script>
+
+
+<script>
+// ---------------------------
+//  AUTO REVIEW-SYNC
+// ---------------------------
+document.addEventListener("DOMContentLoaded", () => {
+
+  const form = document.querySelector("#wf-form-common-pyt-application");
+
+  if (!form) return;
+
+  // Format date into readable string
+  function formatDate(val) {
+    if (!val) return "—";
+    const d = new Date(val);
+    if (isNaN(d)) return val; // fallback if already formatted
+    return d.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    });
+  }
+
+  // Sync all fields to review step
+  function syncReviewFields() {
+    const fields = form.querySelectorAll("input, select, textarea");
+
+    fields.forEach(field => {
+      const fieldId = field.id;
+      if (!fieldId) return;
+
+      const reviewEl = document.getElementById("review-" + fieldId);
+      if (!reviewEl) return;
+
+      let value = field.value || "—";
+
+      // Special handling per field type
+      switch (field.type) {
+
+        case "checkbox":
+        console.log("Checkbox:", field.id, "checked →", field.checked);
+          value = field.checked ? "Yes" : "No";
+          break;
+
+        case "radio":
+          if (!field.checked) return;
+          value = field.value;
+          break;
+
+        case "select-multiple":
+          value = Array.from(field.selectedOptions)
+                       .map(opt => opt.textContent.trim())
+                       .join(", ") || "—";
+          break;
+
+        case "date":
+          value = formatDate(field.value);
+          break;
+      }
+
+      reviewEl.textContent = value;
+    });
+  }
+
+  // Listen to ANY change inside the form
+  form.addEventListener("input", syncReviewFields, true);
+  form.addEventListener("change", syncReviewFields, true);
+
+  // Initial sync
+  syncReviewFields();
+
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  console.log("[DATE SYNC] Script Loaded");
+
+  // Map CMS text inputs → real date pickers
+  const dateMap = {
+    "text-date-of-birth": "date-of-birth",
+    "text-anticipated-graduation-date": "anticipated-graduation-date",
+    "text-disclosure-signed-date": "disclosure-signed-date",
+    "text-form-signed-date": "form-signed-date"
+  };
+
+function convertToISO(dateText) {
+  if (!dateText) return null;
+
+  // Expected CMS format: "December 8, 2025"
+  const parsed = Date.parse(dateText.replace(/,/g, ''));
+  if (isNaN(parsed)) {
+    console.warn("Could not parse date:", dateText);
+    return null;
+  }
+
+  const [monthName, day, year] = dateText.replace(',', '').split(' ');
+  const monthIndex = [
+    "january","february","march","april","may","june",
+    "july","august","september","october","november","december"
+  ].indexOf(monthName.toLowerCase());
+
+  if (monthIndex < 0) return null;
+
+  // Construct date WITHOUT timezone (browser won't shift it)
+  const mm = String(monthIndex + 1).padStart(2, "0");
+  const dd = String(day).padStart(2, "0");
+
+  return `${year}-${mm}-${dd}`;  // YYYY-MM-DD
+}
+
+
+  function syncDates() {
+    console.log("[DATE SYNC] Starting Sync...");
+
+    Object.entries(dateMap).forEach(([cmsId, pickerId]) => {
+      const cmsInput = document.getElementById(cmsId);
+      const picker = document.getElementById(pickerId);
+
+      console.log(`\n[DATE SYNC] Checking: ${cmsId} → ${pickerId}`);
+
+      if (!cmsInput) {
+        console.warn(`[DATE SYNC] CMS input NOT found: ${cmsId}`);
+        return;
+      }
+      if (!picker) {
+        console.warn(`[DATE SYNC] Picker NOT found: ${pickerId}`);
+        return;
+      }
+
+      const rawValue = cmsInput.value || cmsInput.innerText || "";
+      console.log(`[DATE SYNC] Raw CMS value:`, rawValue);
+
+      const isoDate = convertToISO(rawValue);
+
+      if (!isoDate) {
+        console.warn(`[DATE SYNC] Invalid date format for: ${rawValue}`);
+        return;
+      }
+
+      console.log(`[DATE SYNC] Converted ISO:`, isoDate);
+
+      picker.value = isoDate;
+      picker.dispatchEvent(new Event("input", { bubbles: true }));
+      picker.dispatchEvent(new Event("change", { bubbles: true }));
+
+      console.log(`[DATE SYNC] ✓ Applied to picker`);
+    });
+  }
+
+  // Wait for Formly to stop modifying fields
+  let attempts = 0;
+  const wait = setInterval(() => {
+    attempts++;
+    console.log(`[DATE SYNC] Waiting for DOM stable... Attempt ${attempts}/40`);
+
+    if (document.readyState === "complete" || attempts >= 40) {
+      clearInterval(wait);
+      console.log("[DATE SYNC] DOM Ready → Syncing Dates");
+      syncDates();
+    }
+  }, 200);
+
+});
+</script>
